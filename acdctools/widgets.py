@@ -288,6 +288,7 @@ class ImShow(QBaseWindow):
                 plot.vb.setYLink(plots[0].vb)
     
     def drawPoints(self, points_coords):
+        n_coords = points_coords.shape[1]
         for plotItem in self.PlotItems:
             plotItem.pointsItem = pg.ScatterPlotItem(
                 [], [], symbol='o', pxMode=False, size=2,
