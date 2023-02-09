@@ -272,6 +272,9 @@ class ImShow(QBaseWindow):
             plot.autoRange()
     
     def showImages(self, images):
+        for image in images:
+            if image.ndim > 4 or image.ndim < 2:
+                raise TypeError('Only 2-D, 3-D, and 4-D images are supported')
         if isinstance(images, np.ndarray):
             images = [images]
         else:
@@ -287,6 +290,7 @@ class ImShow(QBaseWindow):
 
             imageItem.sigDataHover.connect(self.updateStatusBarLabel)
         
+        import pdb; pdb.set_trace()
         # Share axis between images with same X, Y shape
         all_shapes = [imageItem.image.shape[-2:] for imageItem in self.ImageItems]
         unique_shapes = set(all_shapes)
@@ -332,8 +336,7 @@ class ImShow(QBaseWindow):
                     pointsItem.setData(xx, yy)
                     pointsItem.setVisible(False)
                     imageItem.pointsItems.append(pointsItem)
-
-
+                self.setPointsVisible(imageItem)
 
     def run(self, block=False):
         self.show()
