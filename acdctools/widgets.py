@@ -180,6 +180,18 @@ class ImShow(QBaseWindow):
         for scrollbar in imageItem.ScrollBars:
             img = img[scrollbar.value()]
         imageItem.setImage(img)
+        self.setPointsVisible(imageItem)
+
+    def setPointsVisible(self, imageItem):
+        if not hasattr(imageItem, 'pointsItems'):
+            return
+        
+        first_coord = imageItem.ScrollBars[0].value()
+        for p, plotItem in enumerate(imageItem.pointsItems):
+            if p == first_coord:
+                plotItem.setVisible(True)
+            else:
+                plotItem.setVisible(False)
     
     def setupStatusBar(self):
         self.statusbar = self.statusBar()
@@ -287,20 +299,40 @@ class ImShow(QBaseWindow):
             for plot in plots:
                 plot.vb.setYLink(plots[0].vb)
     
+    def _createPointsScatterItem(self):
+        item = pg.ScatterPlotItem(
+            [], [], symbol='o', pxMode=False, size=3,
+            brush=pg.mkBrush(color=(255,0,0,100)),
+            pen=pg.mkPen(width=2, color=(255,0,0)),
+            hoverable=True, hoverBrush=pg.mkBrush((255,0,0,200)), 
+            tip=None
+        ) 
+        return item
+
     def drawPoints(self, points_coords):
-        n_coords = points_coords.shape[1]
-        for plotItem in self.PlotItems:
-            plotItem.pointsItem = pg.ScatterPlotItem(
-                [], [], symbol='o', pxMode=False, size=2,
-                brush=pg.mkBrush(color=(255,0,0,100)),
-                pen=pg.mkPen(width=2, color=(255,0,0)),
-                hoverable=True, hoverBrush=pg.mkBrush((255,0,0,200)), 
-                tip=None
-            )
-            plotItem.addItem(plotItem.pointsItem)
-            xx = points_coords[:, 1]
-            yy = points_coords[:, 0]
-            plotItem.pointsItem.setData(xx, yy)
+        n_dim = points_coords.shape[1]
+        if n_dim == 2:
+            for plotItem in self.PlotItems:
+                plotItem.pointsItem = self._createPointsScatterItem()
+                plotItem.addItem(plotItem.pointsItem)
+                xx = points_coords[:, 1]
+                yy = points_coords[:, 0]
+                plotItem.pointsItem.setData(xx, yy)
+        elif n_dim == 3:
+            for p, plotItem in enumerate(self.PlotItems):
+                imageItem = self.ImageItems[p]
+                imageItem.pointsItems = []
+                scrollbar = imageItem.ScrollBars[0]
+                for first_coord in range(scrollbar.maximum()):
+                    pointsItem = self._createPointsScatterItem()
+                    plotItem.addItem(pointsItem)
+                    coords = points_coords[points_coords[:,0] == first_coord]
+                    xx = coords[:, 2]
+                    yy = coords[:, 1]
+                    pointsItem.setData(xx, yy)
+                    pointsItem.setVisible(False)
+                    imageItem.pointsItems.append(pointsItem)
+
 
 
     def run(self, block=False):
