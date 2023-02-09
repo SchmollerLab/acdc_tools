@@ -289,8 +289,7 @@ class ImShow(QBaseWindow):
                     scrollbar.setValue(int(scrollbar.maximum()/2))
 
             imageItem.sigDataHover.connect(self.updateStatusBarLabel)
-        
-        import pdb; pdb.set_trace()
+
         # Share axis between images with same X, Y shape
         all_shapes = [imageItem.image.shape[-2:] for imageItem in self.ImageItems]
         unique_shapes = set(all_shapes)
