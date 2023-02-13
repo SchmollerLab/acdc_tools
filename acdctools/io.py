@@ -40,8 +40,12 @@ def get_filepath_from_channel_name(images_path, channel_name):
     else:
         return ''
 
-def _validate_filename(filename: str):
-    m = list(re.finditer(r'[A-Za-z0-9_\.\-]+', filename))
+def _validate_filename(filename: str, is_path=False):
+    if is_path:
+        pattern = r'[A-Za-z0-9_\\\/\:\.\-]+'
+    else:
+        pattern = r'[A-Za-z0-9_\.\-]+'
+    m = list(re.finditer(pattern, filename))
 
     invalid_matches = []
     for i, valid_chars in enumerate(m):
@@ -56,18 +60,31 @@ def _validate_filename(filename: str):
             invalid_matches.append(invalid_chars)
     return set(invalid_matches)
 
-def get_filename_cli(question='Insert a filename', logger_func=print):
+def get_filename_cli(
+        question='Insert a filename', logger_func=print, check_exists=False,
+        is_path=False
+    ):
     while True:
         filename = input(f'{question} (type "q" to cancel): ')
         if filename.lower() == 'q':
             return
-        invalid = _validate_filename(filename)
-        if not invalid:
-            return filename
         
-        logger_func(
-            f'[ERROR]: The filename contains invalid charachters: {invalid}'
-            'Valid charachters are letters, numbers, underscore, full stop, and hyphen.\n'
-        )
+        invalid = _validate_filename(filename, is_path=is_path)
+        if invalid:
+            logger_func(
+                f'[ERROR]: The filename contains invalid charachters: {invalid}'
+                'Valid charachters are letters, numbers, underscore, full stop, and hyphen.\n'
+            )
+            continue
+        
+        if check_exists and not os.path.exists(filename):
+            logger_func(
+                f'[ERROR] The provided path "{filename}" does not exist.'
+            )
+            continue
+
+        return filename
+        
+        
 
 
