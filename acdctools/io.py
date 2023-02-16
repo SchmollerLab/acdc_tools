@@ -69,14 +69,15 @@ def get_filename_cli(
         if filename.lower() == 'q':
             return
         
-        invalid = _validate_filename(filename, is_path=is_path)
-        if invalid:
-            logger_func(
-                f'[ERROR]: The filename contains invalid charachters: {invalid}'
-                'Valid charachters are letters, numbers, underscore, full stop, and hyphen.\n'
-            )
-            continue
-        
+        if not is_path:
+            invalid = _validate_filename(filename, is_path=is_path)
+            if invalid:
+                logger_func(
+                    f'[ERROR]: The filename contains invalid charachters: {invalid}'
+                    'Valid charachters are letters, numbers, underscore, full stop, and hyphen.\n'
+                )
+                continue
+
         if check_exists and not os.path.exists(filename):
             logger_func(
                 f'[ERROR] The provided path "{filename}" does not exist.'
