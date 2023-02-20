@@ -147,10 +147,12 @@ class _ImShowImageItem(pg.ImageItem):
             self.sigDataHover.emit('')
             return
         
-        x, y = event.pos()
+        y, x = event.pos()
+        xdata, ydata = int(x), int(y)
         try:
             xdata, ydata = int(x), int(y)
             value = self.image[ydata, xdata]
+            
             self.sigDataHover.emit(
                 f'{x = :.0f}, {y = :.0f}, {value = :.4f}'
             )
@@ -160,6 +162,7 @@ class _ImShowImageItem(pg.ImageItem):
 class ImShow(QBaseWindow):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+        self._autoLevels = True
     
     def _getGraphicsScrollbar(self, idx, image, imageItem, maximum):
         proxy = QGraphicsProxyWidget(imageItem)
@@ -179,7 +182,7 @@ class ImShow(QBaseWindow):
         imageItem = scrollbar.imageItem
         for scrollbar in imageItem.ScrollBars:
             img = img[scrollbar.value()]
-        imageItem.setImage(img)
+        imageItem.setImage(img, autoLevels=self._autoLevels)
         self.setPointsVisible(imageItem)
 
     def setPointsVisible(self, imageItem):
@@ -204,19 +207,15 @@ class ImShow(QBaseWindow):
         self._container.setLayout(self._layout)
         self.setCentralWidget(self._container)
     
-    def setupGraphicLayout(self, images, hide_axes=True):
+    def setupGraphicLayout(self, *images, hide_axes=True):
         self.graphicLayout = pg.GraphicsLayoutWidget()
 
         # Set a light background
         self.graphicLayout.setBackground((235, 235, 235))
 
-        if isinstance(images, np.ndarray):
-            nrows = 1
-            ncols = 1
-        else:
-            nrows = len(images)//4
-            nrows = nrows if nrows > 0 else 1
-            ncols = 4 if len(images)>4 else len(images)
+        nrows = len(images)//4
+        nrows = nrows if nrows > 0 else 1
+        ncols = 4 if len(images)>4 else len(images)
         
         # Check if additional rows are needed for the scrollbars
         max_ndim = max([image.ndim for image in images])
@@ -271,19 +270,19 @@ class ImShow(QBaseWindow):
         for plot in self.PlotItems:
             plot.autoRange()
     
-    def showImages(self, images):
+    def showImages(self, *images, luts=None, autoLevels=True):
+        self.luts = luts
+        self._autoLevels = autoLevels
         for image in images:
             if image.ndim > 4 or image.ndim < 2:
                 raise TypeError('Only 2-D, 3-D, and 4-D images are supported')
-        if isinstance(images, np.ndarray):
-            images = [images]
-        else:
-            nrows = len(images)//4+1
-            ncols = 4 if len(images)>4 else len(images)
         
-        for image, imageItem in zip(images, self.ImageItems):
+        for i, (image, imageItem) in enumerate(zip(images, self.ImageItems)):
+            if luts is not None:
+                imageItem.setLookupTable(luts[i])
+            
             if image.ndim == 2:
-                imageItem.setImage(image)
+                imageItem.setImage(image, autoLevels=self._autoLevels)
             else:
                 for scrollbar in imageItem.ScrollBars:
                     scrollbar.setValue(int(scrollbar.maximum()/2))

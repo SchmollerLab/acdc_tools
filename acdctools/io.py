@@ -20,6 +20,8 @@ def get_filepath_from_channel_name(images_path, channel_name):
     img_path = ''
     for file in path.listdir(images_path):
         channelDataPath = os.path.join(images_path, file)
+        if file.endswith(channel_name):
+            return channelDataPath
         if file.endswith(f'{channel_name}_aligned.h5'):
             h5_aligned_path = channelDataPath
         elif file.endswith(f'{channel_name}.h5'):
