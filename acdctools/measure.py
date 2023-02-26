@@ -3,7 +3,10 @@ import numpy as np
 import skimage.transform
 import skimage.measure
 
-def calc_rotational_volume(obj, PhysicalSizeY=1, PhysicalSizeX=1, vox_to_fl=None):
+def rotational_volume(
+        obj: skimage.measure._regionprops.RegionProperties, 
+        PhysicalSizeY=1.0, PhysicalSizeX=1.0, vox_to_fl=None
+    ):
     """Given the region properties of a 2D or 3D object (from skimage.measure.regionprops).
     calculate the rotation volume as described in the Supplementary information of
     https://www.nature.com/articles/s41467-020-16764-x
@@ -12,12 +15,12 @@ def calc_rotational_volume(obj, PhysicalSizeY=1, PhysicalSizeX=1, vox_to_fl=None
     ----------
     obj : skimage.measure.RegionProperties
         Single item of the list returned by from skimage.measure.regionprops.
-    PhysicalSizeY : int, optional
+    PhysicalSizeY : float, optional
         Physical size of the pixel in the Y-diretion in micrometer/pixel.
-        By default 1
-    PhysicalSizeX : int, optional
+        By default 1.0
+    PhysicalSizeX : float, optional
         Physical size of the pixel in the X-diretion in micrometer/pixel.
-        By default 1
+        By default 1.0
     
     Returns
     -------

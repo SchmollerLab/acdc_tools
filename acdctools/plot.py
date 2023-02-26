@@ -29,6 +29,9 @@ def imshow(
         autoLevels: bool=True,
         block: bool=True
     ):
+    if lut is None:
+        lut = matplotlib_cmap_to_lut('viridis')
+
     if isinstance(lut, str):
         lut = matplotlib_cmap_to_lut(lut)
 
@@ -51,7 +54,7 @@ def imshow(
     win.setupMainLayout()
     win.setupStatusBar()
     win.setupGraphicLayout(*images, hide_axes=hide_axes)
-    win.showImages(*images, luts=luts)
+    win.showImages(*images, luts=luts, autoLevels=autoLevels)
     if points_coords is not None:
         win.drawPoints(points_coords)
     win.run(block=block)

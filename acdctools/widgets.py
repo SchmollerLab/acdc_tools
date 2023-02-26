@@ -20,6 +20,7 @@ except ModuleNotFoundError as e:
 
 try:
     import pyqtgraph as pg
+    pg.setConfigOption('imageAxisOrder', 'row-major') # best performance
 except ModuleNotFoundError as e:
     print('='*50)
     print(
@@ -147,7 +148,7 @@ class _ImShowImageItem(pg.ImageItem):
             self.sigDataHover.emit('')
             return
         
-        y, x = event.pos()
+        x, y = event.pos()
         xdata, ydata = int(x), int(y)
         try:
             xdata, ydata = int(x), int(y)
@@ -280,7 +281,11 @@ class ImShow(QBaseWindow):
         for i, (image, imageItem) in enumerate(zip(images, self.ImageItems)):
             if luts is not None:
                 imageItem.setLookupTable(luts[i])
-            
+                if not autoLevels:
+                    imageItem.setLevels([0, len(luts[i])])
+            else:
+                self._autoLevels = True
+                
             if image.ndim == 2:
                 imageItem.setImage(image, autoLevels=self._autoLevels)
             else:
