@@ -27,7 +27,8 @@ def imshow(
         hide_axes: bool=True, 
         lut: Union[Iterable, matplotlib.colors.Colormap, str]=None, 
         autoLevels: bool=True,
-        block: bool=True
+        autoLevelsOnScroll: bool=False,
+        block: bool=True,
     ):
     if lut is None:
         lut = matplotlib_cmap_to_lut('viridis')
@@ -54,7 +55,10 @@ def imshow(
     win.setupMainLayout()
     win.setupStatusBar()
     win.setupGraphicLayout(*images, hide_axes=hide_axes)
-    win.showImages(*images, luts=luts, autoLevels=autoLevels)
+    win.showImages(
+        *images, luts=luts, autoLevels=autoLevels, 
+        autoLevelsOnScroll=autoLevelsOnScroll
+    )
     if points_coords is not None:
         win.drawPoints(points_coords)
     win.run(block=block)

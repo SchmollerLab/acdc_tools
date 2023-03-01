@@ -271,9 +271,13 @@ class ImShow(QBaseWindow):
         for plot in self.PlotItems:
             plot.autoRange()
     
-    def showImages(self, *images, luts=None, autoLevels=True):
+    def showImages(
+            self, *images, luts=None, autoLevels=True, 
+            autoLevelsOnScroll=False
+        ):
         self.luts = luts
         self._autoLevels = autoLevels
+        self._autoLevelsOnScroll = autoLevelsOnScroll
         for image in images:
             if image.ndim > 4 or image.ndim < 2:
                 raise TypeError('Only 2-D, 3-D, and 4-D images are supported')
@@ -289,6 +293,9 @@ class ImShow(QBaseWindow):
             if image.ndim == 2:
                 imageItem.setImage(image, autoLevels=self._autoLevels)
             else:
+                if not self._autoLevelsOnScroll:
+                    self._autoLevels = False
+                    imageItem.setLevels([image.min(), image.max()])
                 for scrollbar in imageItem.ScrollBars:
                     scrollbar.setValue(int(scrollbar.maximum()/2))
 
