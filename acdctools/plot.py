@@ -238,11 +238,15 @@ def _get_heatmap_yticks(
     return yticks_start, yticks_end, yticks_center
 
 def _get_heatmap_xticks(xx, x_unit_width, num_xticks):
-    series_xticks = pd.Series(xx).repeat(x_unit_width)
-    series_xticks = series_xticks.iloc[::num_xticks]
+    series_xindex = pd.Series(xx).repeat(x_unit_width)
+    zero_x = series_xindex.iloc[[0]]
+    last_x = series_xindex.iloc[[-1]]
+    resampling_step = round(len(series_xindex)/num_xticks)
+    series_xticks = series_xindex.iloc[::resampling_step]
+    series_xticks = pd.concat((zero_x, series_xticks, last_x)).drop_duplicates()
     xticks = series_xticks.index.to_list()
-    xticks_labels = series_xticks.values
-    import pdb; pdb.set_trace()
+    xticks_labels = series_xticks.values.astype(int)
+    return xticks, xticks_labels
 
 def _check_x_dtype(df, x, force_x_to_int):
     if force_x_to_int:
@@ -274,7 +278,7 @@ def heatmap(
         stretch_height_factor: float=None,
         stretch_width_factor: float=None,
         group_label_depth: int=None,
-        num_xticks: int=10,
+        num_xticks: int=6,
         colormap: Union[str, matplotlib.colors.Colormap]='viridis',
         missing_values_color=None,
         colorbar_pad: float= 0.07,
@@ -355,6 +359,7 @@ def heatmap(
 
     im = ax.imshow(data, cmap=colormap, vmin=z_min, vmax=z_max)
     ax.set_xlabel(x)
+    ax.set_xticks(xticks, labels=xticks_labels)
     ax.set_ylabel(y_grouping)
     ax.set_yticks(yticks, labels=yticks_labels)
     
