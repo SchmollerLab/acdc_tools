@@ -237,7 +237,24 @@ def _get_heatmap_yticks(
         yticks_center = yticks_center
     return yticks_start, yticks_end, yticks_center
 
-def _get_heatmap_xticks(xx, x_unit_width, num_xticks):
+def _raise_convert_time_how(convert_time_how):
+    print(error_below)
+    conversion_methods = [
+        f'    * {how}' for how in _core.time_units_converters.keys()
+    ]
+    conversion_methods = '\n'.join(conversion_methods)
+    print(
+        f'"{convert_time_how}" is not a valid `convert_time_how` value.\n'
+    )
+    print(
+        f'Valid methods are:\n\n{conversion_methods}'
+    )
+    print(error_close)
+    exit()
+
+def _get_heatmap_xticks(
+        xx, x_unit_width, num_xticks, convert_time_how, num_decimals_xticks_labels
+    ):
     series_xindex = pd.Series(xx).repeat(x_unit_width)
     zero_x = series_xindex.iloc[[0]]
     last_x = series_xindex.iloc[[-1]]
@@ -246,6 +263,17 @@ def _get_heatmap_xticks(xx, x_unit_width, num_xticks):
     series_xticks = pd.concat((zero_x, series_xticks, last_x)).drop_duplicates()
     xticks = series_xticks.index.to_list()
     xticks_labels = series_xticks.values.astype(int)
+    if convert_time_how is None:
+        return xticks, xticks_labels
+    
+    from_unit, to_unit = convert_time_how.split('->')
+    xticks_labels = _core.convert_time_units(xticks_labels, from_unit, to_unit)
+    if xticks_labels is None:
+        _raise_convert_time_how(convert_time_how)
+    if num_decimals_xticks_labels is None:
+        return xticks, xticks_labels
+    
+    xticks_labels = xticks_labels.round(num_decimals_xticks_labels)
     return xticks, xticks_labels
 
 def _check_x_dtype(df, x, force_x_to_int):
@@ -272,6 +300,9 @@ def heatmap(
         normalize_x: bool=False,
         zeroize_x: bool=False,
         x_bin_size: int=None,
+        convert_time_how: str=None,
+        xlabel: str=None,
+        num_decimals_xticks_labels: int=None,
         force_x_to_int: bool=False,
         z_min: Union[int, float]=None,
         z_max: Union[int, float]=None,
@@ -339,7 +370,9 @@ def heatmap(
     yticks_labels = yticks_start.index.to_list()
     yticks = yticks_start.values
 
-    xticks, xticks_labels = _get_heatmap_xticks(xx, x_unit_width, num_xticks)
+    xticks, xticks_labels = _get_heatmap_xticks(
+        xx, x_unit_width, num_xticks, convert_time_how, num_decimals_xticks_labels
+    )
 
     if group_height > 1:
         data = np.repeat(data, [group_height]*len(data), axis=0)
@@ -357,8 +390,11 @@ def heatmap(
         colors[0] = bkgr_color
         colormap = matplotlib.colors.ListedColormap(colors)
 
+    if xlabel is None:
+        xlabel = x
+
     im = ax.imshow(data, cmap=colormap, vmin=z_min, vmax=z_max)
-    ax.set_xlabel(x)
+    ax.set_xlabel(xlabel)
     ax.set_xticks(xticks, labels=xticks_labels)
     ax.set_ylabel(y_grouping)
     ax.set_yticks(yticks, labels=yticks_labels)
