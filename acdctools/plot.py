@@ -260,6 +260,8 @@ def heatmap(
         else:
             y_cols = y_grouping
         data = data[[*y_cols, x, z]]
+        if sort_groups:
+            data = data.sort_values(y_cols)
         data, xx, yticks_labels = _get_groups_data(
             data, x, z, grouping=y_cols, normalize_x=normalize_x,
             bin_size=x_bin_size, zeroize_x=zeroize_x
