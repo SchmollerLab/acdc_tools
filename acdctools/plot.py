@@ -183,7 +183,7 @@ def _get_groups_data(
             df_data = df_data.set_index('x_int').drop(columns='x')
             bin_size = int(bin_size*order_of_magnitude)
 
-        df_data.index = pd.to_datetime(df_data.index)
+        df_data.index = pd.to_datetime(df_data.index.astype(int))
         rs = f'{bin_size}ns'
         df_data = df_data.resample(rs, label='right').mean()
         df_data.index = df_data.index.astype(np.int64)/order_of_magnitude
@@ -237,6 +237,24 @@ def _get_heatmap_yticks(
         yticks_center = yticks_center
     return yticks_start, yticks_end, yticks_center
 
+def _get_heatmap_xticks():
+    pass
+
+def _check_x_dtype(df, x, force_x_to_int):
+    if force_x_to_int:
+        return
+
+    if pd.api.types.is_integer_dtype(df[x]):
+        return
+    print(error_below)
+    print(
+        f'The `x` column must be of data type integer. '
+        'Pass `force_x_to_int=True` if you want to force conversion to '
+        'integers.'
+    )
+    print(error_close)
+    exit()
+
 def heatmap(
         data: Union[pd.DataFrame, np.ndarray], 
         x: str='',  
@@ -246,6 +264,7 @@ def heatmap(
         normalize_x: bool=False,
         zeroize_x: bool=False,
         x_bin_size: int=None,
+        force_x_to_int: bool=False,
         z_min: Union[int, float]=None,
         z_max: Union[int, float]=None,
         stretch_height_factor: float=None,
@@ -268,6 +287,7 @@ def heatmap(
     yticks_labels = None
     if isinstance(data, pd.DataFrame):
         _check_df_data_args(y_grouping=y_grouping, x=x, z=z)
+        _check_x_dtype(data, x, force_x_to_int)
         if isinstance(y_grouping, str):
             y_cols = (y_grouping,)
         else:
@@ -283,6 +303,8 @@ def heatmap(
         x = 'x' if not x else x
         y_grouping = 'groups' if not y_grouping else y_grouping
         z = 'x' if not z else z
+
+    import pdb; pdb.set_trace()
 
     if z_min is None:
         z_min = np.nanmin(data)
