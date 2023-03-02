@@ -270,6 +270,7 @@ def heatmap(
         stretch_height_factor: float=None,
         stretch_width_factor: float=None,
         group_label_depth: int=None,
+        num_xticks: int=10,
         colormap: Union[str, matplotlib.colors.Colormap]='viridis',
         missing_values_color=None,
         colorbar_pad: float= 0.07,
@@ -304,8 +305,6 @@ def heatmap(
         y_grouping = 'groups' if not y_grouping else y_grouping
         z = 'x' if not z else z
 
-    import pdb; pdb.set_trace()
-
     if z_min is None:
         z_min = np.nanmin(data)
     
@@ -331,13 +330,14 @@ def heatmap(
     yticks_labels = yticks_start.index.to_list()
     yticks = yticks_start.values
 
+    # xticks, xticks_labels = 
+
     if group_height > 1:
         data = np.repeat(data, [group_height]*len(data), axis=0)
     
     if x_unit_width > 1:
         ncols = data.shape[-1]
         data = np.repeat(data, [x_unit_width]*ncols, axis=1)
-    
     
     if missing_values_color is not None:
         if isinstance(colormap, str):
