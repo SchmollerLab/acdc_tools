@@ -237,8 +237,12 @@ def _get_heatmap_yticks(
         yticks_center = yticks_center
     return yticks_start, yticks_end, yticks_center
 
-def _get_heatmap_xticks():
-    pass
+def _get_heatmap_xticks(xx, x_unit_width, num_xticks):
+    series_xticks = pd.Series(xx).repeat(x_unit_width)
+    series_xticks = series_xticks.iloc[::num_xticks]
+    xticks = series_xticks.index.to_list()
+    xticks_labels = series_xticks.values
+    import pdb; pdb.set_trace()
 
 def _check_x_dtype(df, x, force_x_to_int):
     if force_x_to_int:
@@ -304,6 +308,7 @@ def heatmap(
         x = 'x' if not x else x
         y_grouping = 'groups' if not y_grouping else y_grouping
         z = 'x' if not z else z
+        xx = np.arange(data.shape[-1])
 
     if z_min is None:
         z_min = np.nanmin(data)
@@ -330,7 +335,7 @@ def heatmap(
     yticks_labels = yticks_start.index.to_list()
     yticks = yticks_start.values
 
-    # xticks, xticks_labels = 
+    xticks, xticks_labels = _get_heatmap_xticks(xx, x_unit_width, num_xticks)
 
     if group_height > 1:
         data = np.repeat(data, [group_height]*len(data), axis=0)
