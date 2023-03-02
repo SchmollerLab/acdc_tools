@@ -1,3 +1,4 @@
+import traceback
 import sys
 from typing import Union, Iterable
 
@@ -9,7 +10,7 @@ import matplotlib.colors
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from . import widgets, _core
+from . import widgets, _core, error_below, error_close
 
 def matplotlib_cmap_to_lut(
         cmap: Union[Iterable, matplotlib.colors.Colormap, str], 
@@ -23,7 +24,6 @@ def matplotlib_cmap_to_lut(
     for i, rgb in enumerate(rgbs):
         lut[i] = [int(c*255) for c in rgb]
     return lut
-
 
 def imshow(
         *images: np.ndarray, 
@@ -78,12 +78,50 @@ def _add_colorbar_axes(
     if label:
         cbar.set_label(label)
 
+def raise_critical_non_unique_groups(grouping, dfs, groups_xx):
+    groups_with_duplicates = {}
+    for d, df in enumerate(dfs):
+        if df.index.is_unique:
+            continue
+        group_xx = groups_xx[d]
+        group_with_duplicates = df.columns[0].split(';;')[1].replace('-', ', ')
+        duplicated_xx = group_xx[df.index.duplicated(keep='first')]
+        groups_with_duplicates[group_with_duplicates] = duplicated_xx
+    
+    duplicates = []
+    for group_values, duplicated_xx in groups_with_duplicates.items():
+        xx_name = duplicated_xx.name
+        xx_value = duplicated_xx.iloc[0]
+        duplicates_str = (
+            f'    * Duplicates of "{group_values}" --> {xx_name} = {xx_value}'
+        )
+        duplicates.append(duplicates_str)
+
+    duplicates = '\n'.join(duplicates)
+
+    traceback.print_exc()
+    print(error_below)
+    grouping_str = f'{grouping}'.strip('()').strip(',')
+    print(f'The groups determined by "{grouping_str}" are not unique:\n')
+    print(f'{duplicates}')
+    print(error_close)
+    exit()
+
+def raise_missing_arg(argument_name):
+    traceback.print_exc()
+    print(error_below)
+    print(f'The argument `{argument_name}` is required.')
+    print(error_close)
+    exit()
+
 def _get_groups_data(
         df: pd.DataFrame, x: str, z: str, grouping: str, bin_size: int=None, 
-        normalize_x: bool=True
+        normalize_x: bool=False, zeroize_x: bool=False
     ):
-    grouped = df.groupby(grouping)
+    grouped = df.groupby(list(grouping))
     dfs = []
+    groups_xx = []
+    yticks_labels = []
     max_n_decimals = None
     min_norm_bin_size = None
     if normalize_x:
@@ -92,10 +130,20 @@ def _get_groups_data(
         ])
         max_n_decimals = 0
         min_norm_bin_size = np.inf
-        for name, group_df in grouped:
+
+    for name, group_df in grouped:
+        groups_xx.append(group_df[x])
+        if zeroize_x:
             group_xx = group_df[x]-group_df[x].min()
-            group_cols = {col:f'{col}_{name}' for col in group_df.columns}
-            group_df = group_df.rename(columns=group_cols)
+        else:
+            group_xx = group_df[x]
+        if len(grouping) == 1:
+            name_str = str(name)
+        else:
+            name_str = '-'.join([str(n) for n in name])
+        group_cols = {col:f'{col};;{name_str}' for col in group_df.columns}
+        group_df = group_df.rename(columns=group_cols)
+        if normalize_x: 
             max_xx = group_xx.max()
             norm_dx = min_dx/max_xx
             min_dx_rounded = _core.round_to_significant(norm_dx, 2)
@@ -109,14 +157,17 @@ def _get_groups_data(
                 if norm_bin_size < min_norm_bin_size:
                     min_norm_bin_size = norm_bin_size
             group_df['x'] = norm_xx_perc
-            dfs.append(group_df.set_index('x')[[f'{z}_{name}']])
-    else:
-        for name, group_df in grouped:
-            group_cols = {col:f'{col}_{name}' for col in group_df.columns}
-            group_df = group_df.rename(columns=group_cols)
-            dfs.append(group_df.set_index(x)[[f'{z}_{name}']])
-            
-    df_data = pd.concat(dfs, names=[x], axis=1).sort_index()
+        else:
+            group_df['x'] = group_xx
+        col_name = f'{z};;{name_str}'
+        dfs.append(group_df.set_index('x')[[col_name]])
+        
+        yticks_labels.append(f'{name}'.strip('()'))
+
+    try:
+        df_data = pd.concat(dfs, names=[x], axis=1).sort_index()
+    except pd.errors.InvalidIndexError as err:
+        raise_critical_non_unique_groups(grouping, dfs, groups_xx)
 
     if min_norm_bin_size is not None:
         bin_size = min_norm_bin_size
@@ -140,18 +191,55 @@ def _get_groups_data(
     data = df_data.fillna(0).values.T
     xx = df_data.index
 
-    return data, xx
+    return data, xx, yticks_labels
+
+def _check_df_data_args(**kwargs):
+    for arg_name, arg_value in kwargs.items():
+        if arg_value: 
+            continue
+        if arg_value is not None:
+            continue
+        raise_missing_arg(arg_name)
+
+def _get_heatmap_yticks(
+        nrows, group_height, yticks_labels, group_label_depth
+    ):
+    yticks = np.arange(0,nrows*group_height, group_height) - 0.5
+    # yticks = yticks + group_height/2 - 0.5
+
+    if group_label_depth is not None:
+        df_ticks = pd.DataFrame({
+            'yticks': yticks,
+            'yticks_labels': yticks_labels
+        }).set_index('yticks').astype(str)
+        df_ticks = df_ticks['yticks_labels'].str.split(',', expand=True)
+        df_ticks = df_ticks[list(range(group_label_depth))]
+        df_ticks['yticks_labels'] = df_ticks.agg(','.join, axis=1)
+        df_ticks = df_ticks.reset_index().set_index('yticks_labels')
+        yticks_first = df_ticks[~df_ticks.index.duplicated(keep='first')]
+        yticks_last = df_ticks[~df_ticks.index.duplicated(keep='last')]
+        yticks_start = yticks_first['yticks']
+        yticks_end = yticks_last['yticks']
+        yticks_center = yticks_start + (yticks_end-yticks_start)/2
+        yticks_center = yticks_center
+    return yticks_start, yticks_end, yticks_center
 
 def heatmap(
         data: Union[pd.DataFrame, np.ndarray], 
         x: str='',  
         z: str='',
         y_grouping: Union[str, tuple[str]]='',
-        normalize_x: bool=True,
+        sort_groups: bool=True,
+        normalize_x: bool=False,
+        zeroize_x: bool=False,
         x_bin_size: int=None,
         z_min: Union[int, float]=None,
         z_max: Union[int, float]=None,
-        group_height: int=1,
+        stretch_height_factor: float=None,
+        stretch_width_factor: float=None,
+        group_label_depth: int=None,
+        colormap: Union[str, matplotlib.colors.Colormap]='viridis',
+        missing_values_color=None,
         colorbar_pad: float= 0.07,
         colorbar_size: float=0.05,
         colorbar_label: str='',
@@ -160,37 +248,73 @@ def heatmap(
         backend: str='matplotlib',
         block: bool=False
     ):
-    x = 'x' if not x else x
-    y_grouping = 'groups' if not y_grouping else y_grouping
-    z = 'x' if not z else z
     
     if ax is None:
         fig, ax = plt.subplots()
 
+    yticks_labels = None
     if isinstance(data, pd.DataFrame):
+        _check_df_data_args(y_grouping=y_grouping, x=x, z=z)
         if isinstance(y_grouping, str):
             y_cols = (y_grouping,)
         else:
             y_cols = y_grouping
         data = data[[*y_cols, x, z]]
-        data, xx = _get_groups_data(
-            data, x, z, grouping=y_grouping, normalize_x=normalize_x,
-            bin_size=x_bin_size
+        data, xx, yticks_labels = _get_groups_data(
+            data, x, z, grouping=y_cols, normalize_x=normalize_x,
+            bin_size=x_bin_size, zeroize_x=zeroize_x
         )
-    
+    else:
+        x = 'x' if not x else x
+        y_grouping = 'groups' if not y_grouping else y_grouping
+        z = 'x' if not z else z
+
     if z_min is None:
         z_min = np.nanmin(data)
     
     if z_max is None:
         z_max = np.nanmax(data)
+
+    Y, X = data.shape
+    group_height = round(X/Y)
+    if stretch_height_factor is not None:
+        group_height = round(group_height*stretch_height_factor)
     
+    Y, X = data.shape
+    x_unit_width = round(Y/X)
+    if stretch_width_factor is not None:
+        x_unit_width = round(stretch_width_factor)
+    
+    group_height = group_height if group_height>1 else 1
+    x_unit_width = x_unit_width if x_unit_width>1 else 1
+
+    yticks_start, yticks_end, yticks_center = _get_heatmap_yticks(
+        len(data), group_height, yticks_labels, group_label_depth
+    )
+    yticks_labels = yticks_start.index.to_list()
+    yticks = yticks_start.values
+
     if group_height > 1:
         data = np.repeat(data, [group_height]*len(data), axis=0)
+    
+    if x_unit_width > 1:
+        ncols = data.shape[-1]
+        data = np.repeat(data, [x_unit_width]*ncols, axis=1)
+    
+    
+    if missing_values_color is not None:
+        if isinstance(colormap, str):
+            colormap = plt.get_cmap(colormap)
 
-    im = ax.imshow(data, vmin=z_min, vmax=z_max)
+        bkgr_color = matplotlib.colors.to_rgba(missing_values_color)
+        colors = colormap(np.linspace(0,1,256))
+        colors[0] = bkgr_color
+        colormap = matplotlib.colors.ListedColormap(colors)
+
+    im = ax.imshow(data, cmap=colormap, vmin=z_min, vmax=z_max)
     ax.set_xlabel(x)
     ax.set_ylabel(y_grouping)
-    # ax.set_yticks(np.arange(0,len(data)*group_height, group_height))
+    ax.set_yticks(yticks, labels=yticks_labels)
     
     _size_perc = f'{int(colorbar_size*100)}%'
     _add_colorbar_axes(

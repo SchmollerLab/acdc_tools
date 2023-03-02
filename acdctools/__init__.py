@@ -27,3 +27,6 @@ def printl(*objects, pretty=False, is_decorator=False, **kwargs):
     print_func(*objects, **kwargs)
     print('='*30)
     sys.stdout = current_stdout
+
+error_below = f"\n{'*'*30} ERROR {'*'*30}\n"
+error_close = f"\n{'^'*(len(error_below)-1)}"
