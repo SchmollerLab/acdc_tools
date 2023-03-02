@@ -9,10 +9,10 @@ time_units_formats = {
     'minutes': 'minutes',
     'seconds': 'seconds', 
     'hours': 'hours', 
-    'h': 'hours',
+    'H': 'hours',
     'd': 'days',
-    'm': 'minutes',
-    's': 'seconds',
+    'M': 'minutes',
+    'S': 'seconds',
 }
 
 time_units_converters = {
