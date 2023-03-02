@@ -1,6 +1,7 @@
 # Custom ignores
 acdctools/_version.py
 acdctools/test.py
+_tests
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
