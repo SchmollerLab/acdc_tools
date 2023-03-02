@@ -78,7 +78,7 @@ def _add_colorbar_axes(
     if label:
         cbar.set_label(label)
 
-def raise_critical_non_unique_groups(grouping, dfs, groups_xx):
+def _raise_non_unique_groups(grouping, dfs, groups_xx):
     groups_with_duplicates = {}
     for d, df in enumerate(dfs):
         if df.index.is_unique:
@@ -167,7 +167,7 @@ def _get_groups_data(
     try:
         df_data = pd.concat(dfs, names=[x], axis=1).sort_index()
     except pd.errors.InvalidIndexError as err:
-        raise_critical_non_unique_groups(grouping, dfs, groups_xx)
+        _raise_non_unique_groups(grouping, dfs, groups_xx)
 
     if min_norm_bin_size is not None:
         bin_size = min_norm_bin_size
@@ -201,6 +201,16 @@ def _check_df_data_args(**kwargs):
             continue
         raise_missing_arg(arg_name)
 
+def _raise_group_label_depth_too_deep(group_label_depth, n_levels):
+    traceback.print_exc()
+    print(error_below)
+    print(
+        f'The `group_label_depth = {group_label_depth}` is too high, '
+        f'there are only {n_levels} levels.'
+    )
+    print(error_close)
+    exit()
+
 def _get_heatmap_yticks(
         nrows, group_height, yticks_labels, group_label_depth
     ):
@@ -213,6 +223,9 @@ def _get_heatmap_yticks(
             'yticks_labels': yticks_labels
         }).set_index('yticks').astype(str)
         df_ticks = df_ticks['yticks_labels'].str.split(',', expand=True)
+        if group_label_depth > len(df_ticks.columns):
+            n_levels = len(df_ticks.columns)
+            _raise_group_label_depth_too_deep(group_label_depth, n_levels)
         df_ticks = df_ticks[list(range(group_label_depth))]
         df_ticks['yticks_labels'] = df_ticks.agg(','.join, axis=1)
         df_ticks = df_ticks.reset_index().set_index('yticks_labels')
@@ -228,7 +241,7 @@ def heatmap(
         data: Union[pd.DataFrame, np.ndarray], 
         x: str='',  
         z: str='',
-        y_grouping: Union[str, tuple[str]]='',
+        y_grouping: Union[str, list[str]]='',
         sort_groups: bool=True,
         normalize_x: bool=False,
         zeroize_x: bool=False,
@@ -261,7 +274,7 @@ def heatmap(
             y_cols = y_grouping
         data = data[[*y_cols, x, z]]
         if sort_groups:
-            data = data.sort_values(y_cols)
+            data = data.sort_values(list(y_cols))
         data, xx, yticks_labels = _get_groups_data(
             data, x, z, grouping=y_cols, normalize_x=normalize_x,
             bin_size=x_bin_size, zeroize_x=zeroize_x
