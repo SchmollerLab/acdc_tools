@@ -151,11 +151,10 @@ class _ImShowImageItem(pg.ImageItem):
         x, y = event.pos()
         xdata, ydata = int(x), int(y)
         try:
-            xdata, ydata = int(x), int(y)
             value = self.image[ydata, xdata]
             
             self.sigDataHover.emit(
-                f'{x = :.0f}, {y = :.0f}, {value = :.4f}'
+                f'x={xdata}, y={ydata}, {value = :.4f}'
             )
         except Exception as e:
             self.sigDataHover.emit('Null') 
