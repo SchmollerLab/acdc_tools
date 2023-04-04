@@ -1,5 +1,8 @@
 import sys
+import datetime
+
 import numpy as np
+import pandas as pd
 
 try:
     from PyQt5.QtCore import (
@@ -312,32 +315,39 @@ class ImShow(QBaseWindow):
             for plot in plots:
                 plot.vb.setYLink(plots[0].vb)
     
-    def _createPointsScatterItem(self):
+    def _createPointsScatterItem(self, data=None):
         item = pg.ScatterPlotItem(
             [], [], symbol='o', pxMode=False, size=3,
             brush=pg.mkBrush(color=(255,0,0,100)),
             pen=pg.mkPen(width=2, color=(255,0,0)),
             hoverable=True, hoverBrush=pg.mkBrush((255,0,0,200)), 
-            tip=None
+            tip=None, data=data
         ) 
         return item
 
-    def drawPoints(self, points_coords):
+    def drawPoints(self, points_coords):  
         n_dim = points_coords.shape[1]
         if n_dim == 2:
-            for plotItem in self.PlotItems:
-                plotItem.pointsItem = self._createPointsScatterItem()
-                plotItem.addItem(plotItem.pointsItem)
+            zz = [0]*len(points_coords)
+            self.points_coords = np.column_stack((zz, points_coords))
+            for p, plotItem in enumerate(self.PlotItems):
+                imageItem = self.ImageItems[p]
+                pointsItem = self._createPointsScatterItem()
+                pointsItem.z = 0
+                plotItem.addItem(pointsItem)
                 xx = points_coords[:, 1]
-                yy = points_coords[:, 0]
-                plotItem.pointsItem.setData(xx, yy)
+                yy = points_coords[:, 0]    
+                pointsItem.setData(xx, yy)
+                imageItem.pointsItems = [pointsItem]
         elif n_dim == 3:
+            self.points_coords = points_coords
             for p, plotItem in enumerate(self.PlotItems):
                 imageItem = self.ImageItems[p]
                 imageItem.pointsItems = []
                 scrollbar = imageItem.ScrollBars[0]
                 for first_coord in range(scrollbar.maximum()):
                     pointsItem = self._createPointsScatterItem()
+                    pointsItem.z = first_coord
                     plotItem.addItem(pointsItem)
                     coords = points_coords[points_coords[:,0] == first_coord]
                     xx = coords[:, 2]
@@ -346,9 +356,50 @@ class ImShow(QBaseWindow):
                     pointsItem.setVisible(False)
                     imageItem.pointsItems.append(pointsItem)
                 self.setPointsVisible(imageItem)
+    
+    def setPointsData(self, points_data):
+        points_df = pd.DataFrame({
+            'z': self.points_coords[:, 0],
+            'y': self.points_coords[:, 1],
+            'x': self.points_coords[:, 2]
+        })
+        if isinstance(points_data, pd.Series):
+            points_df[points_data.name] = points_data.values
+        elif isinstance(points_data, pd.DataFrame):
+            points_df = points_df.join(points_data)
+        elif isinstance(points_data, np.ndarray):
+            if points_data.ndim == 1:
+                points_data = points_data[np.newaxis]
+            else:
+                points_data = points_data.T
+            for i, values in enumerate(points_data):
+                points_df[f'col_{i}'] = values
 
-    def run(self, block=False):
-        self.show()
+        self.points_df = points_df.set_index(['z', 'y', 'x']).sort_index()
+        
+        for p, plotItem in enumerate(self.PlotItems):
+            imageItem = self.ImageItems[p]
+            for pointsItem in imageItem.pointsItems:
+                pointsItem.sigClicked.connect(self.pointsClicked)
+        
+    def pointsClicked(self, item, points, event):
+        point = points[0]
+        x, y = point.pos()
+        coords = (item.z, int(y), int(x))
+        point_data = self.points_df.loc[[coords]]
+        now = datetime.datetime.now().strftime('%H:%M:%S')
+        print('*'*60)
+        print(f'Point clicked at {now}. Data:')
+        print('-'*60)
+        print(point_data)
+        print('')
+        print('*'*60)
+
+    def run(self, block=False, showMaximised=False):
+        if showMaximised:
+            self.showMaximized()
+        else:
+            self.show()
         QTimer.singleShot(100, self.autoRange)
         
         if block:

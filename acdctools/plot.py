@@ -28,11 +28,13 @@ def matplotlib_cmap_to_lut(
 def imshow(
         *images: np.ndarray, 
         points_coords: np.ndarray=None, 
+        points_data: Union[np.ndarray, pd.DataFrame, pd.Series]=None,
         hide_axes: bool=True, 
         lut: Union[Iterable, matplotlib.colors.Colormap, str]=None, 
         autoLevels: bool=True,
         autoLevelsOnScroll: bool=False,
         block: bool=True,
+        showMaximised=False
     ):
     if lut is None:
         lut = matplotlib_cmap_to_lut('viridis')
@@ -65,7 +67,9 @@ def imshow(
     )
     if points_coords is not None:
         win.drawPoints(points_coords)
-    win.run(block=block)
+    if points_data is not None:
+        win.setPointsData(points_data)
+    win.run(block=block, showMaximised=showMaximised)
     return win
 
 def _add_colorbar_axes(
@@ -270,10 +274,13 @@ def _get_heatmap_xticks(
     xticks_labels = _core.convert_time_units(xticks_labels, from_unit, to_unit)
     if xticks_labels is None:
         _raise_convert_time_how(convert_time_how)
+    
+    
     if num_decimals_xticks_labels is None:
         return xticks, xticks_labels
     
     xticks_labels = xticks_labels.round(num_decimals_xticks_labels)
+    
     return xticks, xticks_labels
 
 def _check_x_dtype(df, x, force_x_to_int):
@@ -308,7 +315,7 @@ def heatmap(
         z_max: Union[int, float]=None,
         stretch_height_factor: float=None,
         stretch_width_factor: float=None,
-        group_label_depth: int=None,
+        group_label_depth: int=1,
         num_xticks: int=6,
         colormap: Union[str, matplotlib.colors.Colormap]='viridis',
         missing_values_color=None,
@@ -371,15 +378,17 @@ def heatmap(
     yticks = yticks_start.values
 
     xticks, xticks_labels = _get_heatmap_xticks(
-        xx, x_unit_width, num_xticks, convert_time_how, num_decimals_xticks_labels
+        xx, x_unit_width, num_xticks, convert_time_how, 
+        num_decimals_xticks_labels
     )
 
     if group_height > 1:
         data = np.repeat(data, [group_height]*len(data), axis=0)
-    
+        
     if x_unit_width > 1:
         ncols = data.shape[-1]
         data = np.repeat(data, [x_unit_width]*ncols, axis=1)
+        xticks = [xtick*x_unit_width for xtick in xticks]
     
     if missing_values_color is not None:
         if isinstance(colormap, str):
