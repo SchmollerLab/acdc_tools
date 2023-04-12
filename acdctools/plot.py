@@ -54,6 +54,12 @@ def imshow(
             
             luts[l] = matplotlib_cmap_to_lut(luts[l])
     
+    casted_images = []
+    for image in images:
+        if image.dtype == bool:
+            image = image.astype(np.uint8)
+        casted_images.append(image)
+
     app = widgets.setupApp()
     win = widgets.ImShow()
     if app is not None:
@@ -62,10 +68,11 @@ def imshow(
     win.setupStatusBar()
     win.setupGraphicLayout(*images, hide_axes=hide_axes)
     win.showImages(
-        *images, luts=luts, autoLevels=autoLevels, 
+        *casted_images, luts=luts, autoLevels=autoLevels, 
         autoLevelsOnScroll=autoLevelsOnScroll
     )
     if points_coords is not None:
+        points_coords = np.round(points_coords).astype(int)
         win.drawPoints(points_coords)
     if points_data is not None:
         win.setPointsData(points_data)

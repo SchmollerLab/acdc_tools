@@ -335,8 +335,8 @@ class ImShow(QBaseWindow):
                 pointsItem = self._createPointsScatterItem()
                 pointsItem.z = 0
                 plotItem.addItem(pointsItem)
-                xx = points_coords[:, 1]
-                yy = points_coords[:, 0]    
+                xx = points_coords[:, 1] + 0.5
+                yy = points_coords[:, 0] + 0.5   
                 pointsItem.setData(xx, yy)
                 imageItem.pointsItems = [pointsItem]
         elif n_dim == 3:
@@ -350,8 +350,8 @@ class ImShow(QBaseWindow):
                     pointsItem.z = first_coord
                     plotItem.addItem(pointsItem)
                     coords = points_coords[points_coords[:,0] == first_coord]
-                    xx = coords[:, 2]
-                    yy = coords[:, 1]
+                    xx = coords[:, 2] + 0.5
+                    yy = coords[:, 1] + 0.5
                     pointsItem.setData(xx, yy)
                     pointsItem.setVisible(False)
                     imageItem.pointsItems.append(pointsItem)
