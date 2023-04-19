@@ -10,7 +10,7 @@ import matplotlib.colors
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from . import widgets, _core, error_below, error_close
+from . import widgets, _core, error_below, error_close, printl
 
 def matplotlib_cmap_to_lut(
         cmap: Union[Iterable, matplotlib.colors.Colormap, str], 
@@ -56,6 +56,7 @@ def imshow(
     
     casted_images = []
     for image in images:
+        input_dtype = image.dtype
         if image.dtype == bool:
             image = image.astype(np.uint8)
         casted_images.append(image)
@@ -66,7 +67,7 @@ def imshow(
         win.app = app
     win.setupMainLayout()
     win.setupStatusBar()
-    win.setupGraphicLayout(*images, hide_axes=hide_axes)
+    win.setupGraphicLayout(*casted_images, hide_axes=hide_axes)
     win.showImages(
         *casted_images, luts=luts, autoLevels=autoLevels, 
         autoLevelsOnScroll=autoLevelsOnScroll
@@ -264,16 +265,35 @@ def _raise_convert_time_how(convert_time_how):
     exit()
 
 def _get_heatmap_xticks(
-        xx, x_unit_width, num_xticks, convert_time_how, num_decimals_xticks_labels
+        xx, x_unit_width, num_xticks, convert_time_how, 
+        num_decimals_xticks_labels, x_label_loc='right',
+        add_x_0_label=True, x_labels=None
     ):
     series_xindex = pd.Series(xx).repeat(x_unit_width)
-    zero_x = series_xindex.iloc[[0]]
-    last_x = series_xindex.iloc[[-1]]
-    resampling_step = round(len(series_xindex)/num_xticks)
-    series_xticks = series_xindex.iloc[::resampling_step]
-    series_xticks = pd.concat((zero_x, series_xticks, last_x)).drop_duplicates()
+    if x_label_loc == 'right':
+        series_xindex.index = series_xindex.index + 1
+    elif x_label_loc == 'center':
+        series_xindex.index = series_xindex.index + 0.5
+    elif x_label_loc == 'left':
+        pass
+    
+    if x_labels is not None:
+        series_xticks = (
+            series_xindex[series_xindex.isin(x_labels)]
+            .drop_duplicates(keep='first')
+        )
+    else:
+        resampling_step = round(len(series_xindex)/(num_xticks))
+        series_xticks = series_xindex.iloc[::resampling_step]
+    
     xticks = series_xticks.index.to_list()
     xticks_labels = series_xticks.values.astype(int)
+    
+    if add_x_0_label and xticks[0] != 0:
+        xticks = [0, *xticks]
+        xticks_labels = np.zeros(len(xticks), dtype=int)
+        xticks_labels[1:] = series_xticks
+
     if convert_time_how is None:
         return xticks, xticks_labels
     
@@ -281,7 +301,6 @@ def _get_heatmap_xticks(
     xticks_labels = _core.convert_time_units(xticks_labels, from_unit, to_unit)
     if xticks_labels is None:
         _raise_convert_time_how(convert_time_how)
-    
     
     if num_decimals_xticks_labels is None:
         return xticks, xticks_labels
@@ -314,6 +333,9 @@ def heatmap(
         normalize_x: bool=False,
         zeroize_x: bool=False,
         x_bin_size: int=None,
+        x_label_loc: str='right',
+        x_labels: np.ndarray=None,
+        add_x_0_label: bool=True,
         convert_time_how: str=None,
         xlabel: str=None,
         num_decimals_xticks_labels: int=None,
@@ -386,7 +408,8 @@ def heatmap(
 
     xticks, xticks_labels = _get_heatmap_xticks(
         xx, x_unit_width, num_xticks, convert_time_how, 
-        num_decimals_xticks_labels
+        num_decimals_xticks_labels, x_label_loc=x_label_loc,
+        add_x_0_label=add_x_0_label, x_labels=x_labels
     )
 
     if group_height > 1:
@@ -408,6 +431,9 @@ def heatmap(
 
     if xlabel is None:
         xlabel = x
+
+    # Make sure to label the side of the pixel
+    xticks = [x-0.5 for x in xticks]
 
     im = ax.imshow(data, cmap=colormap, vmin=z_min, vmax=z_max)
     ax.set_xlabel(xlabel)

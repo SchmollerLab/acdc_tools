@@ -250,13 +250,16 @@ class ImShow(QBaseWindow):
                 imageItem.ScrollBars = []
 
                 image = images[i]
-                if image.ndim > 2:
+                is_rgb = image.shape[-1] == 3
+                is_rgba = image.shape[-1] == 4
+
+                if image.ndim > 2 and not is_rgba and not is_rgb:
                     maximum = image.shape[0]-1
                     scrollbarProxy = self._getGraphicsScrollbar(0, image, imageItem, maximum)
                     self.graphicLayout.addItem(scrollbarProxy, row=row+1, col=col)
                     imageItem.ScrollBars.append(scrollbarProxy.scrollbar)
 
-                if image.ndim == 4:
+                if image.ndim == 4 and not is_rgba:
                     maximum = image.shape[1]-1
                     scrollbarProxy = self._getGraphicsScrollbar(1, image, imageItem, maximum)
                     self.graphicLayout.addItem(scrollbarProxy, row=row+1, col=col)
@@ -291,8 +294,11 @@ class ImShow(QBaseWindow):
                     imageItem.setLevels([0, len(luts[i])])
             else:
                 self._autoLevels = True
-                
-            if image.ndim == 2:
+            
+            is_rgb = image.shape[-1] == 3
+            is_rgba = image.shape[-1] == 4
+
+            if image.ndim == 2 or is_rgb or is_rgba:
                 imageItem.setImage(image, autoLevels=self._autoLevels)
             else:
                 if not self._autoLevelsOnScroll:
