@@ -34,7 +34,8 @@ def imshow(
         autoLevels: bool=True,
         autoLevelsOnScroll: bool=False,
         block: bool=True,
-        showMaximised=False
+        showMaximised=False,
+        max_ncols=4
     ):
     if lut is None:
         lut = matplotlib_cmap_to_lut('viridis')
@@ -56,7 +57,6 @@ def imshow(
     
     casted_images = []
     for image in images:
-        input_dtype = image.dtype
         if image.dtype == bool:
             image = image.astype(np.uint8)
         casted_images.append(image)

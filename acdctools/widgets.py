@@ -4,6 +4,10 @@ import datetime
 import numpy as np
 import pandas as pd
 
+from math import ceil
+
+from . import printl
+
 try:
     from PyQt5.QtCore import (
         QCoreApplication, QEventLoop, Qt, pyqtSignal, QTimer
@@ -210,15 +214,17 @@ class ImShow(QBaseWindow):
         self._container.setLayout(self._layout)
         self.setCentralWidget(self._container)
     
-    def setupGraphicLayout(self, *images, hide_axes=True):
+    def setupGraphicLayout(self, *images, hide_axes=True, max_ncols=4):
         self.graphicLayout = pg.GraphicsLayoutWidget()
 
         # Set a light background
         self.graphicLayout.setBackground((235, 235, 235))
 
-        nrows = len(images)//4
+        ncells = max_ncols * ceil(len(images)/max_ncols)
+
+        nrows = ncells // max_ncols
         nrows = nrows if nrows > 0 else 1
-        ncols = 4 if len(images)>4 else len(images)
+        ncols = max_ncols if len(images) > max_ncols else len(images)
         
         # Check if additional rows are needed for the scrollbars
         max_ndim = max([image.ndim for image in images])
@@ -237,6 +243,10 @@ class ImShow(QBaseWindow):
         i = 0
         for row in rows_range:
             for col in range(ncols):
+                try:
+                    image = images[i]
+                except IndexError:
+                    break
                 plot = ImShowPlotItem()
                 if hide_axes:
                     plot.hideAxis('bottom')
@@ -248,8 +258,7 @@ class ImShow(QBaseWindow):
                 plot.addItem(imageItem)
                 self.ImageItems.append(imageItem)
                 imageItem.ScrollBars = []
-
-                image = images[i]
+                
                 is_rgb = image.shape[-1] == 3
                 is_rgba = image.shape[-1] == 4
 
