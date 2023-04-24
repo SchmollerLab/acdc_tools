@@ -67,7 +67,9 @@ def imshow(
         win.app = app
     win.setupMainLayout()
     win.setupStatusBar()
-    win.setupGraphicLayout(*casted_images, hide_axes=hide_axes)
+    win.setupGraphicLayout(
+        *casted_images, hide_axes=hide_axes, max_ncols=max_ncols
+    )
     win.showImages(
         *casted_images, luts=luts, autoLevels=autoLevels, 
         autoLevelsOnScroll=autoLevelsOnScroll
