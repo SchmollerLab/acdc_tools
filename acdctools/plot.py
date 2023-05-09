@@ -35,7 +35,8 @@ def imshow(
         autoLevelsOnScroll: bool=False,
         block: bool=True,
         showMaximised=False,
-        max_ncols=4
+        max_ncols=4,
+        axis_titles: Union[Iterable, None]=None
     ):
     if lut is None:
         lut = matplotlib_cmap_to_lut('viridis')
@@ -70,6 +71,8 @@ def imshow(
     win.setupGraphicLayout(
         *casted_images, hide_axes=hide_axes, max_ncols=max_ncols
     )
+    if axis_titles is not None:
+        win.setupTitles(*axis_titles)
     win.showImages(
         *casted_images, luts=luts, autoLevels=autoLevels, 
         autoLevelsOnScroll=autoLevelsOnScroll

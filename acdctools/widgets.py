@@ -278,6 +278,10 @@ class ImShow(QBaseWindow):
         
         self._layout.addWidget(self.graphicLayout)
     
+    def setupTitles(self, *titles):
+        for plot, title in zip(self.PlotItems, titles):
+            plot.setTitle(title, color='k')
+    
     def updateStatusBarLabel(self, text):
         self.wcLabel.setText(text)
     
