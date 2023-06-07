@@ -340,7 +340,7 @@ def heatmap(
         x_bin_size: int=None,
         x_label_loc: str='right',
         x_labels: np.ndarray=None,
-        add_x_0_label: bool=True,
+        add_x_0_label: bool=False,
         convert_time_how: str=None,
         xlabel: str=None,
         num_decimals_xticks_labels: int=None,

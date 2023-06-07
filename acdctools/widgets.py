@@ -9,18 +9,18 @@ from math import ceil
 from . import printl
 
 try:
-    from PyQt5.QtCore import (
-        QCoreApplication, QEventLoop, Qt, pyqtSignal, QTimer
+    from qtpy.QtCore import (
+        QCoreApplication, QEventLoop, Qt, Signal, QTimer
     )
-    from PyQt5.QtWidgets import (
+    from qtpy.QtWidgets import (
         QApplication, QMainWindow, QStyleFactory, QWidget, QHBoxLayout, 
         QLabel, QGraphicsProxyWidget, QScrollBar, QSpinBox
     )
 except ModuleNotFoundError as e:
     print('='*50)
     print(
-        '[ERROR]: The widgets from acdctools requires the installation of PyQt5. '
-        'To install it, run the command `python -m pip install -U PyQt5`'
+        '[ERROR]: The widgets module of acdctools requires the installation of qtpy. '
+        'To install it, run the command `python -m pip install -U qtpy`'
     )
     print('='*50)
     exit()
@@ -71,7 +71,7 @@ class QBaseWindow(QMainWindow):
         super().keyPressEvent(event)
 
 class ScrollBarWithNumericControl(QWidget):
-    sigValueChanged = pyqtSignal(int)
+    sigValueChanged = Signal(int)
     
     def __init__(self, orientation=Qt.Horizontal, parent=None) -> None:
         super().__init__(parent)
@@ -145,7 +145,7 @@ class ImShowPlotItem(pg.PlotItem):
         self.autoBtn.hide()
 
 class _ImShowImageItem(pg.ImageItem):
-    sigDataHover = pyqtSignal(str)
+    sigDataHover = Signal(str)
 
     def __init__(self) -> None:
         super().__init__()
