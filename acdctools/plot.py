@@ -36,7 +36,9 @@ def imshow(
         block: bool=True,
         showMaximised=False,
         max_ncols=4,
-        axis_titles: Union[Iterable, None]=None
+        axis_titles: Union[Iterable, None]=None, 
+        parent=None, 
+        window_title='acdc-tools image viewer'
     ):
     if lut is None:
         lut = matplotlib_cmap_to_lut('viridis')
@@ -63,7 +65,8 @@ def imshow(
         casted_images.append(image)
 
     app = widgets.setupApp()
-    win = widgets.ImShow()
+    win = widgets.ImShow(parent=parent)
+    win.setWindowTitle(window_title)
     if app is not None:
         win.app = app
     win.setupMainLayout()

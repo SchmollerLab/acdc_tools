@@ -333,6 +333,7 @@ class ImShow(QBaseWindow):
         for plots in shame_shape_plots:
             for plot in plots:
                 plot.vb.setYLink(plots[0].vb)
+                plot.vb.setXLink(plots[0].vb)
     
     def _createPointsScatterItem(self, data=None):
         item = pg.ScatterPlotItem(
