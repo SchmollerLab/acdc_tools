@@ -1,6 +1,9 @@
 import os
+import subprocess
 
 from natsort import natsorted
+
+from . import is_mac, is_linux
 
 def listdir(path):
     return natsorted([
@@ -40,3 +43,15 @@ def newfilepath(file_path, appended_text: str=None):
         if not os.path.exists(new_filepath):
             return new_filepath, f'{appended_text}_{i+1}'
         i += 1
+
+def show_in_file_manager(path):
+    if is_mac:
+        args = ['open', fr'{path}']
+    elif is_linux:
+        args = ['xdg-open', fr'{path}']
+    else:
+        if os.path.isfile(path):
+            args = ['explorer', '/select,', os.path.realpath(path)]
+        else:
+            args = ['explorer', os.path.realpath(path)]
+    subprocess.run(args)

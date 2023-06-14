@@ -362,11 +362,15 @@ def heatmap(
         ax: plt.Axes=None,
         fig: plt.Figure=None,
         backend: str='matplotlib',
-        block: bool=False
+        block: bool=False,
+        imshow_kwargs: dict=None
     ):
     
     if ax is None:
         fig, ax = plt.subplots()
+    
+    if imshow_kwargs is None:
+        imshow_kwargs = {}
 
     yticks_labels = None
     if isinstance(data, pd.DataFrame):
@@ -443,7 +447,7 @@ def heatmap(
     # Make sure to label the side of the pixel
     xticks = [x-0.5 for x in xticks]
 
-    im = ax.imshow(data, cmap=colormap, vmin=z_min, vmax=z_max)
+    im = ax.imshow(data, cmap=colormap, vmin=z_min, vmax=z_max, **imshow_kwargs)
     ax.set_xlabel(xlabel)
     ax.set_xticks(xticks, labels=xticks_labels)
     ax.set_ylabel(y_grouping)
@@ -457,4 +461,4 @@ def heatmap(
     if block:
         plt.show()
     else:
-        return ax
+        return fig, ax, im

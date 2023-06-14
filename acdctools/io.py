@@ -100,7 +100,3 @@ def get_filename_cli(
             continue
 
         return filename
-        
-        
-
-
