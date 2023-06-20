@@ -38,7 +38,9 @@ def imshow(
         max_ncols=4,
         axis_titles: Union[Iterable, None]=None, 
         parent=None, 
-        window_title='acdc-tools image viewer'
+        window_title='acdc-tools image viewer',
+        color_scheme='light', 
+        link_scrollbars=True
     ):
     if lut is None:
         lut = matplotlib_cmap_to_lut('viridis')
@@ -65,14 +67,15 @@ def imshow(
         casted_images.append(image)
 
     app = widgets.setupApp()
-    win = widgets.ImShow(parent=parent)
+    win = widgets.ImShow(parent=parent, link_scrollbars=link_scrollbars)
     win.setWindowTitle(window_title)
     if app is not None:
         win.app = app
     win.setupMainLayout()
     win.setupStatusBar()
     win.setupGraphicLayout(
-        *casted_images, hide_axes=hide_axes, max_ncols=max_ncols
+        *casted_images, hide_axes=hide_axes, max_ncols=max_ncols,
+        color_scheme=color_scheme
     )
     if axis_titles is not None:
         win.setupTitles(*axis_titles)

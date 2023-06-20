@@ -136,7 +136,7 @@ class ImShowPlotItem(pg.PlotItem):
         self.autoBtn.mode = 'manual'
         self.invertY(True)
         self.setAspectLocked(True)
-    
+        
     def autoBtnClicked(self):
         self.autoRange()
     
@@ -167,8 +167,9 @@ class _ImShowImageItem(pg.ImageItem):
             self.sigDataHover.emit('Null') 
 
 class ImShow(QBaseWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, link_scrollbars=True):
         super().__init__(parent=parent)
+        self._linkedScrollbars = link_scrollbars
         self._autoLevels = True
     
     def _getGraphicsScrollbar(self, idx, image, imageItem, maximum):
@@ -191,6 +192,27 @@ class ImShow(QBaseWindow):
             img = img[scrollbar.value()]
         imageItem.setImage(img, autoLevels=self._autoLevels)
         self.setPointsVisible(imageItem)
+        if not self._linkedScrollbars:
+            return
+        if len(self.ImageItems) == 1:
+            return
+        
+        self._linkedScrollbars = False
+        try:
+            idx = scrollbar.idx
+            for otherImageItem in self.ImageItems:
+                if otherImageItem.gridPos == imageItem.gridPos:
+                    continue
+                if otherImageItem.image.shape != imageItem.image.shape:
+                    continue
+                for otherScrollbar in otherImageItem.ScrollBars:
+                    if otherScrollbar.idx != idx:
+                        continue
+                    otherScrollbar.setValue(scrollbar.value())
+        except Exception as e:
+            pass
+        finally:
+            self._linkedScrollbars = True
 
     def setPointsVisible(self, imageItem):
         if not hasattr(imageItem, 'pointsItems'):
@@ -214,11 +236,17 @@ class ImShow(QBaseWindow):
         self._container.setLayout(self._layout)
         self.setCentralWidget(self._container)
     
-    def setupGraphicLayout(self, *images, hide_axes=True, max_ncols=4):
+    def setupGraphicLayout(
+            self, *images, hide_axes=True, max_ncols=4, color_scheme='light'
+        ):
         self.graphicLayout = pg.GraphicsLayoutWidget()
+        self._colorScheme = color_scheme
 
         # Set a light background
-        self.graphicLayout.setBackground((235, 235, 235))
+        if color_scheme == 'light':
+            self.graphicLayout.setBackground((235, 235, 235))
+        else:
+            self.graphicLayout.setBackground((50, 50, 50))
 
         ncells = max_ncols * ceil(len(images)/max_ncols)
 
@@ -257,6 +285,7 @@ class ImShow(QBaseWindow):
                 imageItem = _ImShowImageItem()
                 plot.addItem(imageItem)
                 self.ImageItems.append(imageItem)
+                imageItem.gridPos = (row, col)
                 imageItem.ScrollBars = []
                 
                 is_rgb = image.shape[-1] == 3
@@ -264,13 +293,17 @@ class ImShow(QBaseWindow):
 
                 if image.ndim > 2 and not is_rgba and not is_rgb:
                     maximum = image.shape[0]-1
-                    scrollbarProxy = self._getGraphicsScrollbar(0, image, imageItem, maximum)
+                    scrollbarProxy = self._getGraphicsScrollbar(
+                        0, image, imageItem, maximum
+                    )
                     self.graphicLayout.addItem(scrollbarProxy, row=row+1, col=col)
                     imageItem.ScrollBars.append(scrollbarProxy.scrollbar)
 
                 if image.ndim == 4 and not is_rgba:
                     maximum = image.shape[1]-1
-                    scrollbarProxy = self._getGraphicsScrollbar(1, image, imageItem, maximum)
+                    scrollbarProxy = self._getGraphicsScrollbar(
+                        1, image, imageItem, maximum
+                    )
                     self.graphicLayout.addItem(scrollbarProxy, row=row+1, col=col)
                     imageItem.ScrollBars.append(scrollbarProxy.scrollbar)
 
@@ -279,8 +312,9 @@ class ImShow(QBaseWindow):
         self._layout.addWidget(self.graphicLayout)
     
     def setupTitles(self, *titles):
+        color = 'k' if self._colorScheme == 'light' else 'w'
         for plot, title in zip(self.PlotItems, titles):
-            plot.setTitle(title, color='k')
+            plot.setTitle(title, color=color)
     
     def updateStatusBarLabel(self, text):
         self.wcLabel.setText(text)
@@ -327,7 +361,10 @@ class ImShow(QBaseWindow):
         unique_shapes = set(all_shapes)
         shame_shape_plots = []
         for unique_shape in unique_shapes:
-            plots = [self.PlotItems[i] for i, shape in enumerate(all_shapes) if shape==unique_shape]
+            plots = [
+                self.PlotItems[i] for i, shape in enumerate(all_shapes) 
+                if shape==unique_shape
+            ]
             shame_shape_plots.append(plots)
         
         for plots in shame_shape_plots:
