@@ -1,5 +1,6 @@
 import sys
 import datetime
+from PyQt5 import QtGui
 
 import numpy as np
 import pandas as pd
@@ -462,3 +463,7 @@ class ImShow(QBaseWindow):
         
         if block:
             self.exec_()
+    
+    def resizeEvent(self, event) -> None:
+        self.PlotItems[0].autoRange()       
+        return super().resizeEvent(event)
