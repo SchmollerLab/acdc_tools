@@ -327,6 +327,7 @@ class ImShow(QBaseWindow):
             self, *images, luts=None, autoLevels=True, 
             autoLevelsOnScroll=False
         ):
+        images = [np.squeeze(img) for img in images]
         self.luts = luts
         self._autoLevels = autoLevels
         self._autoLevelsOnScroll = autoLevelsOnScroll
@@ -357,7 +358,7 @@ class ImShow(QBaseWindow):
             imageItem.sigDataHover.connect(self.updateStatusBarLabel)
 
         # Share axis between images with same X, Y shape
-        all_shapes = [imageItem.image.shape[-2:] for imageItem in self.ImageItems]
+        all_shapes = [image.shape[-2:] for image in images]
         unique_shapes = set(all_shapes)
         shame_shape_plots = []
         for unique_shape in unique_shapes:
