@@ -1,6 +1,5 @@
 import sys
 import datetime
-from PyQt5 import QtGui
 
 import numpy as np
 import pandas as pd
