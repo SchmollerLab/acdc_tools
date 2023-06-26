@@ -159,10 +159,14 @@ class _ImShowImageItem(pg.ImageItem):
         xdata, ydata = int(x), int(y)
         try:
             value = self.image[ydata, xdata]
-            
-            self.sigDataHover.emit(
-                f'x={xdata}, y={ydata}, {value = :.4f}'
-            )
+            try:
+                self.sigDataHover.emit(
+                    f'x={xdata}, y={ydata}, {value = :.4f}'
+                )
+            except Exception as e:
+                self.sigDataHover.emit(
+                    f'x={xdata}, y={ydata}, {[val for val in value]}'
+                )
         except Exception as e:
             self.sigDataHover.emit('Null') 
 
@@ -246,7 +250,7 @@ class ImShow(QBaseWindow):
         if color_scheme == 'light':
             self.graphicLayout.setBackground((235, 235, 235))
         else:
-            self.graphicLayout.setBackground((50, 50, 50))
+            self.graphicLayout.setBackground((30, 30, 30))
 
         ncells = max_ncols * ceil(len(images)/max_ncols)
 
@@ -290,23 +294,25 @@ class ImShow(QBaseWindow):
                 
                 is_rgb = image.shape[-1] == 3
                 is_rgba = image.shape[-1] == 4
-
-                if image.ndim > 2 and not is_rgba and not is_rgb:
-                    maximum = image.shape[0]-1
+                does_not_require_scrollbars = (
+                    image.ndim == 2
+                    or (image.ndim == 3 and is_rgb)
+                    or (image.ndim == 3 and is_rgb)
+                )
+                if does_not_require_scrollbars:
+                    i += 1
+                    continue
+                
+                idx_image = 3 if (is_rgb or is_rgba) else 2
+                for s in range(image.ndim-idx_image):
+                    maximum = image.shape[s]-1
                     scrollbarProxy = self._getGraphicsScrollbar(
                         0, image, imageItem, maximum
                     )
                     self.graphicLayout.addItem(scrollbarProxy, row=row+1, col=col)
                     imageItem.ScrollBars.append(scrollbarProxy.scrollbar)
 
-                if image.ndim == 4 and not is_rgba:
-                    maximum = image.shape[1]-1
-                    scrollbarProxy = self._getGraphicsScrollbar(
-                        1, image, imageItem, maximum
-                    )
-                    self.graphicLayout.addItem(scrollbarProxy, row=row+1, col=col)
-                    imageItem.ScrollBars.append(scrollbarProxy.scrollbar)
-
+                printl(image.ndim, is_rgba, is_rgb)
                 i += 1
         
         self._layout.addWidget(self.graphicLayout)
@@ -332,8 +338,11 @@ class ImShow(QBaseWindow):
         self._autoLevels = autoLevels
         self._autoLevelsOnScroll = autoLevelsOnScroll
         for image in images:
-            if image.ndim > 4 or image.ndim < 2:
-                raise TypeError('Only 2-D, 3-D, and 4-D images are supported')
+            if image.ndim > 5 or image.ndim < 2:
+                raise TypeError(
+                    f'Input image has {image.ndim} dimensions. '
+                    'Only 2-D, 3-D, and 4-D images are supported'
+                )
         
         for i, (image, imageItem) in enumerate(zip(images, self.ImageItems)):
             if luts is not None:
@@ -345,8 +354,13 @@ class ImShow(QBaseWindow):
             
             is_rgb = image.shape[-1] == 3
             is_rgba = image.shape[-1] == 4
+            does_not_require_scrollbars = (
+                image.ndim == 2
+                or (image.ndim == 3 and is_rgb)
+                or (image.ndim == 3 and is_rgb)
+            )
 
-            if image.ndim == 2 or is_rgb or is_rgba:
+            if does_not_require_scrollbars:
                 imageItem.setImage(image, autoLevels=self._autoLevels)
             else:
                 if not self._autoLevelsOnScroll:
