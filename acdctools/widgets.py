@@ -312,7 +312,6 @@ class ImShow(QBaseWindow):
                     self.graphicLayout.addItem(scrollbarProxy, row=row+1, col=col)
                     imageItem.ScrollBars.append(scrollbarProxy.scrollbar)
 
-                printl(image.ndim, is_rgba, is_rgb)
                 i += 1
         
         self._layout.addWidget(self.graphicLayout)
